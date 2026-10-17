@@ -2182,6 +2182,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (hover:hover){ .ph-tab:not(.on):hover{color:var(--ph-ink)} }
 @media (prefers-reduced-motion:no-preference){ .ph-tab{transition:background-color .15s,box-shadow .15s,color .15s} }
 
+/* «Скрыть архивные» (17.10.2026): круглая кнопка у поиска «Объектов»; нажата — архивные скрыты, коробка перечёркнута,
+   кнопка тёмная, как выбранный фильтр-чип */
+.ob-arch .ob-arx{display:none}
+.ob-arch[aria-pressed="true"]{background:var(--ph-ink);color:var(--ph-card)}
+.ob-arch[aria-pressed="true"] .ob-arx{display:inline}
+@media (hover:hover){ .ob-arch[aria-pressed="true"]:hover{background:var(--ph-ink);opacity:.88} }
+.ob-arch:focus-visible{outline:2px solid var(--ph-blue);outline-offset:2px}
+/* настройка в окне аккаунта: строка с переключателем, нажимается вся строка */
+.ac-set{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px;margin:0 -12px;border-radius:14px;cursor:pointer}
+@media (hover:hover){ .ac-set:hover{background:var(--tz-hover)} }
+.ac-set .setlbl{display:flex;flex-direction:column;gap:3px;font-size:14px;font-weight:500;color:var(--ph-ink);line-height:1.3}
+.ac-set .sethint{font-size:12px;font-weight:400;color:var(--ph-mute);line-height:1.4}
+.ac-set .switch{position:relative;flex:none;width:44px;height:26px}
+.ac-set .switch input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.ac-set .slider{position:absolute;inset:0;border-radius:999px;background:var(--tz-track);border:1px solid var(--ph-line);transition:background .15s}
+.ac-set .slider::before{content:"";position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:var(--tz-thumb);
+  box-shadow:var(--tz-thumb-sh);transition:transform .15s}
+.ac-set .switch input:checked + .slider{background:var(--ph-blue);border-color:var(--ph-blue)}
+.ac-set .switch input:checked + .slider::before{transform:translateX(18px);background:#fff}
+.ac-set .switch input:focus-visible + .slider{outline:2px solid var(--ph-blue);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ .ac-set .slider,.ac-set .slider::before{transition:none} }
+
 </style>
 </head>
 <body>
@@ -2276,6 +2298,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </form>
   </div>
   <div class="ac-blk"><h4>Оформление</h4><div class="side-theme" role="radiogroup" aria-label="Тема оформления"><button role="radio" data-theme-set="auto" aria-checked="true" title="Как на устройстве"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg><span>Авто</span></button><button role="radio" data-theme-set="light" aria-checked="false" title="Дневная тема"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>День</span></button><button role="radio" data-theme-set="dark" aria-checked="false" title="Ночная тема"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg><span>Ночь</span></button></div></div>
+  <div class="ac-blk"><h4>Объекты</h4>
+    <label class="setrow ac-set" for="ac-noarch"><span class="setlbl">Скрывать архивные проекты<span class="sethint">При входе в «Объекты» не показывать проекты, перенесённые в архив Adesk. Кнопка с коробкой у поиска показывает их на время.</span></span><span class="switch"><input type="checkbox" id="ac-noarch"><span class="slider"></span></span></label>
+  </div>
   <div class="ac-blk"><h4>Сведения</h4><dl class="ac-kv" id="ac-kv"></dl></div>
   <div class="ac-blk"><h4>Сеанс</h4>
     <div class="ac-row"><button type="button" class="ac-btn ghost" id="ac-out">Выйти</button><button type="button" class="ac-btn warn" id="ac-outall">Выйти на всех устройствах</button></div>
@@ -2564,9 +2589,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     var limit=+(sec.getAttribute('data-show')||0), open=!limit;
     var more=$('.ph-more',sec), count=$('.ph-count',sec);
     function apply(){
-      var s=(q&&q.value||'').trim().toLowerCase(), shown=0, vis=0, items=$$(opt.items,sec);
+      var s=(q&&q.value||'').trim().toLowerCase(), shown=0, vis=0, items=$$(opt.items,sec), noAr=sec.classList.contains('ob-noarch');
       items.forEach(function(it){
-        var ok=(mode==='all'||(it.getAttribute('data-f')||'').indexOf('|'+mode+'|')>=0)&&(!s||(it.getAttribute('data-s')||'').indexOf(s)>=0);
+        var ok=(mode==='all'||(it.getAttribute('data-f')||'').indexOf('|'+mode+'|')>=0)&&(!s||(it.getAttribute('data-s')||'').indexOf(s)>=0)&&
+          !(noAr&&it.hasAttribute('data-ar'));
         it.classList.toggle('hid',!ok); it.hidden=!ok;
         if(ok){ shown++;
           var cut=!open&&shown>limit; it.classList.toggle('cut',cut);
@@ -2581,6 +2607,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     function setMode(m){ mode=m; chips.forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-f')===m); }); apply(); }
     chips.forEach(function(c){ c.addEventListener('click',function(){ setMode(c.getAttribute('data-f')); }); });
     if(q) q.addEventListener('input',apply);
+    /* портал: «Скрыть архивные» (класс ob-noarch у раздела) — перефильтровать без смены фильтра и поиска */
+    sec.addEventListener('ph-refilter',apply);
     if(more) more.addEventListener('click',function(){ open=true; apply(); });
     apply();
     return {setMode:setMode, apply:apply, reset:function(){ if(q) q.value=''; setMode('all'); }};
@@ -5994,6 +6022,13 @@ gap_note+'\n'+
         (t.indexOf('reauth')>=0?'Нужно подтвердить вход: выйди, войди снова и смени пароль сразу после входа.':authErr(err)),'err');
     }).then(function(){ btn.disabled=false; });
   });
+  /* настройка «Скрывать архивные проекты» — вид «Объектов» при входе (этот браузер); меняет и открытый список */
+  (function(){ var t=$('ac-noarch'); if(!t) return;
+    try{ t.checked=localStorage.getItem('ph-ob-noarch')==='1'; }catch(e){}
+    t.addEventListener('change',function(){
+      try{ if(t.checked) localStorage.setItem('ph-ob-noarch','1'); else localStorage.removeItem('ph-ob-noarch'); }catch(e){}
+      var f=AR_SET['ph-ob-all']; if(f) f(t.checked); });
+  })();
   $('ac-out').addEventListener('click',function(){ this.disabled=true; sb.auth.signOut().then(function(){ location.reload(); }); });
   $('ac-outall').addEventListener('click',function(){
     var b=this; b.disabled=true;
@@ -6036,34 +6071,59 @@ gap_note+'\n'+
   function obShort(v){ if(v>=1e6) return (v/1e6).toFixed(2).replace('.',',')+' млн'; if(v>=1e3) return Math.round(v/1e3)+' тыс'; return m(v); }
   function pl(n,a,b,c){ var x=n%10,y=n%100; return x===1&&y!==11?a:(x>=2&&x<=4&&(y<12||y>14)?b:c); }
 
+  /* «Скрыть архивные»: кнопка у поиска меняет вид на время, настройка аккаунта (ac-noarch) — вид при входе */
+  var AR_KEY='ph-ob-noarch', AR_SET={};
+  function arTip(on,n){ return on?'Архивные скрыты ('+n+') — показать':'Скрыть архивные проекты ('+n+')'; }
+  function arWire(sec){
+    var btn=sec.querySelector('.ob-arch'), nar=sec.querySelectorAll('.ob-it[data-ar]').length;
+    function set(on){
+      sec.classList.toggle('ob-noarch',on); btn.setAttribute('aria-pressed',String(on));
+      btn.setAttribute('aria-label',(on?'Показать':'Скрыть')+' архивные проекты'); btn.title=arTip(on,nar);
+      var act=null, all=null;
+      [].forEach.call(sec.querySelectorAll('.ph-chip[data-na]'),function(c){
+        var n=+c.getAttribute(on?'data-nn':'data-na'), sp=c.querySelector('span'); if(sp) sp.textContent=n;
+        if(c.getAttribute('data-f')==='all') all=c; else c.hidden=!n;
+        if(c.classList.contains('on')) act=c; });
+      /* выбранный фильтр опустел (в нём только архивные) — переход на «Все»; иначе перефильтровать как есть */
+      if(act&&act.hidden&&all) all.click(); else sec.dispatchEvent(new Event('ph-refilter'));
+    }
+    btn.addEventListener('click',function(){ set(!sec.classList.contains('ob-noarch')); });
+    AR_SET[sec.id]=set;
+  }
   function mbShort(p){ return String(p).replace(/^#?\s*\d+\s*-?\s*(М[БД]\s+)?/,'').replace(/^[ \/]+|[ \/]+$/g,'')||p; }
   /* «Объекты» (pfx ob) и «Модули» (pfx mb) — одна разметка, как render.sec_objects(); данные — portal_objects() / portal_modules() */
   function loadObjects(pfx){
     var MB=pfx==='mb', pane=$('pane-'+pfx);
     return rpc(MB?'portal_modules':'portal_objects').then(function(r){
       if(r.error){ pane.innerHTML='<div class="pt-wait"><b>'+(MB?'Модули':'Объекты')+' не загрузились</b>'+esc(errText(r.error))+'</div>'; return; }
-      var D=r.data, keys=Object.keys(D.p), cnt={}, items='', year=new Date().getFullYear(), ncl=0;
+      var D=r.data, keys=Object.keys(D.p), cnt={}, cntA={}, nar=0, items='', year=new Date().getFullYear(), ncl=0;
       keys.forEach(function(k){
         var c=D.p[k], sh=MB?mbShort(c.p):shortName(c.p), nm=phName(sh); c.n=nm; c.kd=kind(c.p);
         cnt[c.sk]=(cnt[c.sk]||0)+1; if(c.sk==='closing') ncl++;
+        if(c.ar) nar++; else cntA[c.sk]=(cntA[c.sk]||0)+1;
         var mg='';
         if(c.mp!==null&&c.mp!==undefined){ var lvl=c.mp<0?'neg':(c.mp>=(D.mg||25)?'hi':'mid');
           mg='<span class="ob-mg '+lvl+'" title="Валовая маржа"><i class="ob-mgl">маржа </i>'+c.mp.toFixed(1).replace('.',',').replace('-','−')+' %</span>'; }
         var mm=String(c.p).match(/^\s*(#?[\d\/]+)(?:\s*-\s*([А-ЯЁA-Z]+))?/), sub=mm?(mm[1]+(mm[2]?' · '+mm[2]:'')):'';
         var inc=c.inc>0?obShort(c.inc)+' ₽':'поступлений нет';
-        items+='<button class="ob-it" data-k="'+k+'" data-f="|'+c.sk+'|" data-inc="'+Math.round(c.inc)+'" data-mp="'+(c.mp!==null&&c.mp!==undefined?c.mp:-999)+
+        items+='<button class="ob-it" data-k="'+k+'"'+(c.ar?' data-ar="1"':'')+' data-f="|'+c.sk+'|" data-inc="'+Math.round(c.inc)+'" data-mp="'+(c.mp!==null&&c.mp!==undefined?c.mp:-999)+
           '" data-n="'+esc(nm)+'" data-s="'+esc((c.p+' '+(c.st||'')).toLowerCase())+'" title="'+esc(c.p+' · '+c.st)+'">'+
           '<span class="ph-ava">'+esc(phIni(sh))+'<i class="ob-sd '+OB_ST[c.sk]+'" aria-hidden="true"></i></span>'+
           '<span class="ob-t"><b>'+esc(nm)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span>'+
           '<span class="ob-r">'+mg+'<small>'+inc+'</small></span></button>';
       });
-      var chips='<button class="ph-chip'+(MB?' on':'')+'" data-f="all">Все<span>'+keys.length+'</span></button>'+STATUS.filter(function(s){ return cnt[s[0]]; }).map(function(s){
-        return '<button class="ph-chip'+(!MB&&s[0]==='closing'?' on':'')+'" data-f="'+s[0]+'"><i class="ob-dot '+OB_ST[s[0]]+'"></i>'+
-          (s[0]==='doneyear'?'Завершено '+year:s[1])+'<span>'+cnt[s[0]]+'</span></button>'; }).join('');
+      /* архивные проекты Adesk (поле ar из portal_objects, 17.10.2026): кнопка у поиска скрывает их; при входе — как в настройках аккаунта */
+      var noAr=false; if(nar) try{ noAr=localStorage.getItem(AR_KEY)==='1'; }catch(e){}
+      var nAct=keys.length-nar;
+      var chips='<button class="ph-chip'+(MB?' on':'')+'" data-f="all" data-na="'+keys.length+'" data-nn="'+nAct+'">Все<span>'+(noAr?nAct:keys.length)+'</span></button>'+STATUS.filter(function(s){ return cnt[s[0]]; }).map(function(s){
+        var na=cnt[s[0]], nn=cntA[s[0]]||0, on=!MB&&s[0]==='closing'&&(!noAr||nn);
+        return '<button class="ph-chip'+(on?' on':'')+'" data-f="'+s[0]+'" data-na="'+na+'" data-nn="'+nn+'"'+(noAr&&!nn?' hidden':'')+'><i class="ob-dot '+OB_ST[s[0]]+'"></i>'+
+          (s[0]==='doneyear'?'Завершено '+year:s[1])+'<span>'+(noAr?nn:na)+'</span></button>'; }).join('');
+      var arBtn=nar?'<button type="button" class="ph-ibtn ob-arch" aria-pressed="'+noAr+'" aria-label="'+(noAr?'Показать':'Скрыть')+' архивные проекты" title="'+arTip(noAr,nar)+'">'+ICO.arch+'</button>':'';
       /* описание под заголовком («N проектов Adesk · статус — …») снято 16.10.2026: Константин — «и так понятно» */
-      var html='<div class="ph" id="ph-'+pfx+'"><section class="ph-sec ph-list ob-list" id="ph-'+pfx+'-all" data-show="0">'+
+      var html='<div class="ph" id="ph-'+pfx+'"><section class="ph-sec ph-list ob-list'+(noAr?' ob-noarch':'')+'" id="ph-'+pfx+'-all" data-show="0">'+
         '<div class="ph-sec-h"><div><h2>'+(MB?'Модули':'Объекты')+'</h2></div>'+
-        '<div class="ph-tools"><label class="ph-search">'+ICO.search+'<input type="search" class="ph-q" placeholder="Поиск по названию или номеру" aria-label="Поиск проекта"></label></div></div>'+
+        '<div class="ph-tools"><label class="ph-search">'+ICO.search+'<input type="search" class="ph-q" placeholder="Поиск по названию или номеру" aria-label="Поиск проекта"></label>'+arBtn+'</div></div>'+
         '<div class="ph-chips" role="group" aria-label="Фильтр по статусу">'+chips+'</div>'+
         '<div class="ob-sumw"><div class="ob-sum" aria-live="polite"></div></div>'+
         '<div class="ob-wrap"><div class="ob-col ph-card">'+
@@ -6074,6 +6134,7 @@ gap_note+'\n'+
         '<div class="ob-detail ph-card" id="'+pfx+'-detail" tabindex="-1"><div class="ob-ph"><b>Выбери проект в списке</b><span>Откроется карточка: деньги по проекту, маржа, '+(MB?'структура расходов':'технадзор')+' и все операции. Любую операцию можно открыть целиком.</span></div></div>'+
         '</div></section></div>';
       pane.innerHTML=html;
+      if(nar) arWire($('ph-'+pfx+'-all'));
       var blob=document.createElement('script'); blob.type='application/json'; blob.id=MB?'mbdata':'objdata';
       blob.textContent=JSON.stringify({d:D.d,p:D.p,zl:PHZ,nc:D.nc,gm:D.gm,zc:OB_ST,sy:D.sy||''});
       document.body.appendChild(blob);
@@ -6590,7 +6651,7 @@ gap_note+'\n'+
   /* скрипты дашборда запускаются после того, как разметка и данные разделов на месте */
   var ran=false;
   function runBundle(){ if(ran) return; ran=true; var s=document.createElement('script'); s.textContent=$('pt-bundle').textContent; document.body.appendChild(s); }
-  var ICO={"ob": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><path d=\"M8 13h8\"/></svg>", "pr": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5V13.5z\"/><path d=\"M14 2.8a8.5 8.5 0 0 1 7.2 7.2H14z\"/></svg>", "rp": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 3h8l4 4v14H6z\"/><path d=\"M14 3v4h4\"/><path d=\"M9 12h6M9 16h4\"/></svg>", "cr": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 19.5a5.5 5.5 0 0 1 11 0\"/><path d=\"M15.5 5.2a3.2 3.2 0 0 1 0 5.6\"/><path d=\"M17 14.4a5.5 5.5 0 0 1 3.5 5.1\"/></svg>", "tn": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"/><path d=\"M7 15l4-5 3 3 5-7\"/></svg>", "en": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13 3L5 13.5h6L10 21l8-10.5h-6z\"/></svg>", "mk": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 11v3a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z\"/><path d=\"M16.5 8.5a5 5 0 0 1 0 7\"/><path d=\"M19.5 5.5a9 9 0 0 1 0 13\"/></svg>", "mb": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"8\" width=\"18\" height=\"11\" rx=\"1.5\"/><path d=\"M3 12h18\"/><path d=\"M8 8V5h8v3\"/></svg>", "ck": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2\"/><path d=\"M8.5 8.5l1.5 1.5 3-3\"/><path d=\"M8.5 15l1.5 1.5 3-3\"/><path d=\"M15.5 9h1M15.5 15.5h1\"/></svg>", "us": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.5\"/><path d=\"M5 20a7 7 0 0 1 14 0\"/></svg>", "fl": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 3H6v18h12V7z\"/><path d=\"M14 3v4h4\"/><path d=\"M12 17v-6\"/><path d=\"M9.5 13.5L12 11l2.5 2.5\"/></svg>", "search": "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M20 20l-3.5-3.5\"/></svg>", "chev": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
+  var ICO={"ob": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><path d=\"M8 13h8\"/></svg>", "pr": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5V13.5z\"/><path d=\"M14 2.8a8.5 8.5 0 0 1 7.2 7.2H14z\"/></svg>", "rp": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 3h8l4 4v14H6z\"/><path d=\"M14 3v4h4\"/><path d=\"M9 12h6M9 16h4\"/></svg>", "cr": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 19.5a5.5 5.5 0 0 1 11 0\"/><path d=\"M15.5 5.2a3.2 3.2 0 0 1 0 5.6\"/><path d=\"M17 14.4a5.5 5.5 0 0 1 3.5 5.1\"/></svg>", "tn": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"/><path d=\"M7 15l4-5 3 3 5-7\"/></svg>", "en": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13 3L5 13.5h6L10 21l8-10.5h-6z\"/></svg>", "mk": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 11v3a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z\"/><path d=\"M16.5 8.5a5 5 0 0 1 0 7\"/><path d=\"M19.5 5.5a9 9 0 0 1 0 13\"/></svg>", "mb": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"8\" width=\"18\" height=\"11\" rx=\"1.5\"/><path d=\"M3 12h18\"/><path d=\"M8 8V5h8v3\"/></svg>", "ck": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2\"/><path d=\"M8.5 8.5l1.5 1.5 3-3\"/><path d=\"M8.5 15l1.5 1.5 3-3\"/><path d=\"M15.5 9h1M15.5 15.5h1\"/></svg>", "us": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.5\"/><path d=\"M5 20a7 7 0 0 1 14 0\"/></svg>", "fl": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 3H6v18h12V7z\"/><path d=\"M14 3v4h4\"/><path d=\"M12 17v-6\"/><path d=\"M9.5 13.5L12 11l2.5 2.5\"/></svg>", "search": "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M20 20l-3.5-3.5\"/></svg>", "chev": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"/></svg>", "arch": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9\"/><path d=\"M10 13h4\"/><path class=\"ob-arx\" d=\"M3 3l18 18\"/></svg>"};
 })();
 
 /* Крупные цифры в Unbounded: единицу после числа («₽», «млн ₽», «тыс ₽», «%») выносим в <i class="ph-uu"> — её набирает
